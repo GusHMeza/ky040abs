@@ -1,0 +1,79 @@
+//Gustavo H. 2024
+
+//Este codigo convierte un encoder incremental modelo HW-040 o parecido en un encoder abosluto, con la ayuda de un ATTINY10.
+
+
+// ATTINY 10       SALIDA A PULSOS     ENCODER
+// PB2------------->Hacia otro MCU<----SIG
+// PB1---------------------------------CLK (A)
+// PB0---------------------------------DT  (B)
+  
+
+uint8_t pin = 2;
+uint8_t cantidad_de_pulsos = 10;
+
+
+void delay_us();
+void enviar_pulsos(uint8_t pin_pulsos, uint8_t pulsos_acumulados);
+
+
+void setup() {
+  
+  DDRB = 0b0000; // Todo entradas
+  PORTB = 0b0000; // No RPU
+
+}
+
+void loop() {
+
+  if(PINB & (1 << pin)){
+    
+    while(PINB & (1 << pin)){;} //Esperar a que baje a 0
+
+    delay_us(); //Estabilidad
+    
+    enviar_pulsos(pin, cantidad_de_pulsos); //Salida pulsada
+    }
+  else{
+    PORTB &= ~(1 << pin); //Salida en 0 o RPU apagada.
+    DDRB &= ~(1 << pin); //Pin de salida configurada como entrada
+    }
+  
+}
+
+void delay_us(){
+
+TCNT0H = 0x7F;
+TCNT0L = 0xFF;
+
+TCCR0A = 0b00000000;
+TCCR0B = 0b00000000; //Stop 
+
+TCCR0B |= (1 << 0); //Start
+
+  while(1){
+    if((TIFR0 & (1 << TOV0))){
+      TIFR0 |= (1 << TOV0); //Clear
+      break;
+      }
+    }   
+}
+
+
+void enviar_pulsos(uint8_t pin_pulsos, uint8_t pulsos_acumulados){
+  
+  DDRB |= (1 << pin_pulsos); //Configura el pin como salida
+  delay_us();
+  delay_us(); //2 frames de delay
+
+  //Envia un tren de pulsos de [pulsos_acumulados * 2] cambios de estado.
+  for(uint8_t i = 0 ; i < pulsos_acumulados ; i++){
+        PORTB |= (1 << pin_pulsos);
+        delay_us(); //Para una señal de 120Hz
+        PORTB &= ~(1 << pin_pulsos);
+        delay_us();
+      }
+
+      PORTB &= ~(1 << pin_pulsos); //Reinicia la salida en 0
+      DDRB &= ~(1 << pin_pulsos); //Regresa a ser una entrada
+ }
