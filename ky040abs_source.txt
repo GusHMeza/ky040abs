@@ -3,75 +3,116 @@
 //Este codigo convierte un encoder incremental modelo HW-040 o parecido en un encoder abosluto, con la ayuda de un ATTINY10.
 
 
-// ATTINY 10       SALIDA A PULSOS     ENCODER
-// PB2------------->Hacia otro MCU<----SIG
-// PB1---------------------------------CLK (A)
-// PB0---------------------------------DT  (B)
-  
-
-uint8_t pin = 2;
-uint8_t cantidad_de_pulsos = 10;
+// ATTINY 10       SALIDA PULSOS       ENCODER
+// PB2------------->Hacia otro MCU<----SW
+// PB1---------------------------------CLK 
+// PB0---------------------------------DT 
 
 
-void delay_us();
+
+uint8_t PIN_SALIDA = 2;
+
+uint8_t angulo_en_pulsos = 15;
+uint32_t overflows = 0;
+uint8_t mantenido_pulsado = 0;
+uint8_t DT = 0, DT_anterior = 0, CLK = 0, CLK_anterior = 0;
+
+void delay_us(uint32_t microseconds);
 void enviar_pulsos(uint8_t pin_pulsos, uint8_t pulsos_acumulados);
 
 
-void setup() {
-  
+ISR(PCINT0_vect){
+
+  cli(); //Detener intenrrupciones
+
+  //Guardar variables
+  CLK = PINB & (1 << 0);  
+    
+    if(CLK != CLK_anterior && CLK == 1){
+      if(PINB & (1 << 1)){
+       angulo_en_pulsos++;
+       if(angulo_en_pulsos >= 30){
+          angulo_en_pulsos = 30;
+        }
+       }
+       else{
+        angulo_en_pulsos--;
+        if(angulo_en_pulsos <= 1){
+          angulo_en_pulsos = 1;
+          }
+        }
+        
+    }
+    CLK_anterior = CLK;
+
+  sei();
+  }
+
+void setup() {  
+
+  //HW config
   DDRB = 0b0000; // Todo entradas
   PORTB = 0b0000; // No RPU
+  PORTCR |= (1 << 1);
+
+  //PCINT0 interrupt enabled
+  PCMSK |= (1 << 1);
+  PCICR |= (1 << 0);
+  sei(); 
+
+  //Variable start condition
+  CLK_anterior = PINB & (1 << 0);
 
 }
+
 
 void loop() {
-
-  if(PINB & (1 << pin)){
-    
-    while(PINB & (1 << pin)){;} //Esperar a que baje a 0
-
-    delay_us(); //Estabilidad
-    
-    enviar_pulsos(pin, cantidad_de_pulsos); //Salida pulsada
-    }
-  else{
-    PORTB &= ~(1 << pin); //Salida en 0 o RPU apagada.
-    DDRB &= ~(1 << pin); //Pin de salida configurada como entrada
-    }
-  
+  if(PINB & (1 << 2)){
+    while(PINB & (1 << 2)){;} //Esperar   
+    enviar_pulsos(2, angulo_en_pulsos); //Salida pulsada
 }
 
-void delay_us(){
+}
 
-TCNT0H = 0x7F;
-TCNT0L = 0xFF;
 
-TCCR0A = 0b00000000;
-TCCR0B = 0b00000000; //Stop 
+void delay_us(uint32_t microseconds){
 
-TCCR0B |= (1 << 0); //Start
+  cli();
 
-  while(1){
-    if((TIFR0 & (1 << TOV0))){
-      TIFR0 |= (1 << TOV0); //Clear
-      break;
+  TCCR0A = 0b00000000; //Configure timer. Normal mode. 
+  TCCR0B = 0b00000000; //Stop
+
+  overflows = 0;
+
+  while(overflows < microseconds){
+    TCNT0H = 0xFF;
+    TCNT0L = 0xF0; //Avanzar timer
+    
+    TCCR0B |= (1 << 0); //Start, no prescaler.
+  
+    while(1){
+      if(TIFR0 & (1 << TOV0)){
+        overflows++;
+        TIFR0 |= (1 << TOV0);
+        break;
       }
-    }   
+    }
+  }
+  sei();
 }
 
 
 void enviar_pulsos(uint8_t pin_pulsos, uint8_t pulsos_acumulados){
   
   DDRB |= (1 << pin_pulsos); //Configura el pin como salida
-  delay_us();
-  delay_us(); //2 frames de delay
+  delay_us(11850/2); //10ms de estabilidad
 
-  //Envia un tren de pulsos de [pulsos_acumulados * 2] cambios de estado.
+  //Envia un tren de pulsos
   for(uint8_t i = 0 ; i < pulsos_acumulados ; i++){
         PORTB |= (1 << pin_pulsos);
-        delay_us(); //Para una señal de 120Hz
+        delay_us(65); //Para una señal de 1kHz
         PORTB &= ~(1 << pin_pulsos);
-        delay_us();
+        delay_us(65);
       }
 
       PORTB &= ~(1 << pin_pulsos); //Reinicia la salida en 0
