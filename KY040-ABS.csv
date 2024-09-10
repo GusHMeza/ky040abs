@@ -1,0 +1,8 @@
+Reference,Value,Datasheet,Footprint,Qty
+C1,.1uF,~,Capacitor_SMD:C_0603_1608Metric,1
+D1,LED,~,LED_SMD:LED_0603_1608Metric,1
+J1,Conn_01x03_Pin,~,Connector_JST:JST_PH_S3B-PH-K_1x03_P2.00mm_Horizontal,1
+"R1,R2",2kR,~,Resistor_SMD:R_0603_1608Metric,2
+R7,1k,~,Resistor_SMD:R_0603_1608Metric,1
+SW1,RotaryEncoder_Switch,~,Rotary_Encoder:RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm_CircularMountingHoles,1
+U1,ATtiny10-TS,http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-8127-AVR-8-bit-Microcontroller-ATtiny4-ATtiny5-ATtiny9-ATtiny10_Datasheet.pdf,Package_TO_SOT_SMD:SOT-23-6,1
