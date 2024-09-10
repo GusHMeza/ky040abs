@@ -13,3 +13,8 @@ IMPORTANT: Use avrboy by kimio-kosaka to program the ATTINY10 chip before solder
 5. To adjust the resolution (given you have a gear ratio between the encoder and and a spinning shaft), modify the *angulo_en_pulsos* variable.
 5.1. The provided code shows a bidirectional rotation reading, where the ATTINY10 starts at 15 counts that either increment up to 30 or decrement down to 0 depending on the direction of rotation. 
 
+![image](https://github.com/user-attachments/assets/0fc51c07-1977-4a34-a501-8459a88d71d0)
+
+![image](https://github.com/user-attachments/assets/76d64839-2747-4267-8564-8d8eb9c94198)
+
+
